@@ -17,16 +17,14 @@ npm install puppeteer dotenv
 1. Close all open chrome pages. Open a terminal and run the command:
 
 ```
-\path\to\chrome start chrome --remote-debugging-port=9222
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 ```
 
-- This command opens Chrome in a special mode that allows the bot to control it.
-- Make sure the CAPTCHA solver extension is enabled in this Chrome window, as the bot will connect to it.
-
-2. Returning back to the AddToCartBot directory, run the command:
+then,
 
 ```
-node addToCart.js
+.\runner.ps1 -TagId "M;051;O4;R" -Instances 2
 ```
 
-- This command starts the bot, which will connect to the Chrome window you opened and begin interacting with the website.
+- This command opens two Chrome pages in a special mode that allows the bot to control it.
+- Make sure the CAPTCHA solver extension is enabled on boths Chrome windows, as the bots will connect to each Chrome page respectively.

@@ -1,23 +1,44 @@
+const yargs = require('yargs');
+
 const puppeteer = require('puppeteer')
 require('dotenv').config();
 
-const WEBSITE_URL = process.env.WEBSITE_URL
+const argv = yargs
+  .option('port', {
+    alias: 'p',
+    type: 'number',
+    default: 9222,
+    description: 'Port number (default: 9222)'
+  })
+  .option('tag_id', {
+    alias: 't',
+    type: 'string',
+    default: 'M;020;01;R',
+    description: 'Tag ID (default: "M;051;O4;R")'
+  })
+  .help()
+  .argv;
 
-async function main() {
+const WEBSITE_URL = "https://www.cpwshop.com/licensing.page"
+
+async function main(port, tagId) {
+    console.log("hi");
+
     try {
         const browser = await puppeteer.connect({
-            browserURL: 'http://127.0.0.1:9222',
+            browserURL: 'http://127.0.0.1:' + port.toString(),
             defaultViewport: false,
         });
         const page = await browser.newPage();
         await page.goto(WEBSITE_URL);
+        let split = tagId.split(';');
 
         // the bot starts taking action when Leftover Limited Purchase page is rendered
         await page.waitForSelector('[aria-label="Row #1 - hunt location code"]', { timeout: 0 });
-        await page.locator('[aria-label="Row #1 - sub species code"]').fill("M")
-        await page.locator('[aria-label="Row #1 - hunt location code"]').fill("020")
-        await page.locator('[aria-label="Row #1 - date period code"]').fill("O1")
-        await page.locator('[aria-label="Row #1 - weapon code"]').fill("R")
+        await page.locator('[aria-label="Row #1 - sub species code"]').fill(split[0])
+        await page.locator('[aria-label="Row #1 - hunt location code"]').fill(split[1])
+        await page.locator('[aria-label="Row #1 - date period code"]').fill(split[2])
+        await page.locator('[aria-label="Row #1 - weapon code"]').fill(split[3])
         
         // throw the bot in a loop until the checkout button is enabled
         var isCheckoutBtnDisabled = true;
@@ -37,19 +58,9 @@ async function main() {
 
         // after the checkout button is enabled, throw the bot into another loop clicking on the checkout button until a tag is "dropped in"
         var isAddToCartBtnVisible = false;
-        var count = 0; //remove
         do {
-            console.log("Count " + count + ": About to click on the enabled checkout button...");
-            //await page.waitForSelector('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]', { timeout: 0 });
-            await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click(); // click the enabled checkout button
+            await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click({ timeout: 0 }); // click the enabled checkout button
             await new Promise(resolve => setTimeout(resolve, 100));
-            // simulation of a tag being "dropped in"
-            count += 1;//remove
-            if (count === 1000 && !isAddToCartBtnVisible) {//remove
-                await new Promise(resolve => setTimeout(resolve, 1000));//remove
-                await page.locator('[aria-label="Row #1 - hunt location code"]').fill("012")//remove
-                await page.locator('[aria-label="Row #1 - date period code"]').fill("O4")//remove
-            }//remove
             console.log("Clicking on the enabled checkout button...");
             isAddToCartBtnVisible = await page.evaluate(() => {
                 const button = document.querySelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]');
@@ -63,16 +74,29 @@ async function main() {
             })
         } while (!isAddToCartBtnVisible);
 
-        // after the Confirm Choices page is rendered, the bot immediately clicks on the Add to Cart button
-        await new Promise(resolve => setTimeout(resolve, 100)); // need
-        console.log("About to click on the Add to Cart button...");
-        await page.waitForSelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]', { timeout: 0 });
-        await page.locator('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]').click();
-        console.log("Add to Cart button clicked successfully.");
+        do {
+            // after the Confirm Choices page is rendered, the bot immediately clicks on the Add to Cart button
+            console.log("About to click on the Add to Cart button...");
+            //await page.waitForSelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]', { timeout: 0 });
+            await page.locator('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]').click( { timeout: 0 });
+            console.log("Clicking on the Add to Cart button...");
+            isAddToCartBtnVisible = await page.evaluate(() => {
+                const button = document.querySelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]');
+                if (button != null) { // if the button exists, that means the Add to Cart button is visible
+                    console.log("Add to Cart button is now visible. Proceeding...");
+                    return true;
+                } else { // if the button does not exist, that means the Add to Cart button is not visible
+                    console.log("Add to Cart button is still not visible.");
+                    return false;
+                }
+            })            
+        } while (isAddToCartBtnVisible);
+        console.log("The Add to Cart button has successfully been clicked. End of the script."); 
     }
     catch (error) {
         console.log(error);
     }
 }
 
-main();
+
+main(argv.port, argv.tag_id);
