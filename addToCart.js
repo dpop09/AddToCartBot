@@ -14,7 +14,7 @@ const argv = yargs
     alias: 't',
     type: 'string',
     default: 'M;020;01;R',
-    description: 'Tag ID (default: "M;051;O4;R")'
+    description: 'Tag ID (default: "M;020;O1;R")'
   })
   .help()
   .argv;
@@ -58,39 +58,37 @@ async function main(port, tagId) {
 
         // after the checkout button is enabled, throw the bot into another loop clicking on the checkout button until a tag is "dropped in"
         var isAddToCartBtnVisible = false;
+        var count = 0;
         do {
-            await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click({ timeout: 0 }); // click the enabled checkout button
-            await new Promise(resolve => setTimeout(resolve, 100));
-            console.log("Clicking on the enabled checkout button...");
-            isAddToCartBtnVisible = await page.evaluate(() => {
-                const button = document.querySelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]');
-                if (button != null) { // if the button exists, that means the Add to Cart button is visible
-                    console.log("Add to Cart button is now visible. Proceeding...");
-                    return true;
-                } else { // if the button does not exist, that means the Add to Cart button is not visible
-                    console.log("Add to Cart button is still not visible.");
-                    return false;
+            console.log("Count: " + count);
+            await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click({ timeout: 0 })
+            .then(async () => {
+               await new Promise(resolve => setTimeout(resolve, 100));
+               count += 1;
+                if (count === 1000 && !isAddToCartBtnVisible) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await page.locator('[aria-label="Row #1 - hunt location code"]').fill("012")
+                    await page.locator('[aria-label="Row #1 - date period code"]').fill("O4")
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
-            })
+                console.log("Clicking on the enabled checkout button...");
+                isAddToCartBtnVisible = await page.evaluate(() => {
+                    const button = document.querySelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]');
+                    if (button != null) { // if the button exists, that means the Add to Cart button is visible
+                        console.log("Add to Cart button is now visible. Proceeding...");
+                        return true;
+                    } else { // if the button does not exist, that means the Add to Cart button is not visible
+                        console.log("Add to Cart button is still not visible.");
+                        return false;
+                    }
+                })
+            });
         } while (!isAddToCartBtnVisible);
 
-        do {
-            // after the Confirm Choices page is rendered, the bot immediately clicks on the Add to Cart button
-            console.log("About to click on the Add to Cart button...");
-            //await page.waitForSelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]', { timeout: 0 });
-            await page.locator('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]').click( { timeout: 0 });
-            console.log("Clicking on the Add to Cart button...");
-            isAddToCartBtnVisible = await page.evaluate(() => {
-                const button = document.querySelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]');
-                if (button != null) { // if the button exists, that means the Add to Cart button is visible
-                    console.log("Add to Cart button is now visible. Proceeding...");
-                    return true;
-                } else { // if the button does not exist, that means the Add to Cart button is not visible
-                    console.log("Add to Cart button is still not visible.");
-                    return false;
-                }
-            })            
-        } while (isAddToCartBtnVisible);
+        // after the Confirm Choices page is rendered, the bot immediately clicks on the Add to Cart button
+        console.log("About to click on the Add to Cart button...");
+        await page.waitForSelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]', { timeout: 0 });
+        await page.locator('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]').click();
         console.log("The Add to Cart button has successfully been clicked. End of the script."); 
     }
     catch (error) {
