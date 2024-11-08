@@ -13,8 +13,8 @@ const argv = yargs
   .option('tag_id', {
     alias: 't',
     type: 'string',
-    default: 'M;020;01;R',
-    description: 'Tag ID (default: "M;020;O1;R")'
+    default: 'E;057;O3;R',
+    description: 'Tag ID (default: "E;057;O3;R")'
   })
   .help()
   .argv;
@@ -58,38 +58,54 @@ async function main(port, tagId) {
 
         // after the checkout button is enabled, throw the bot into another loop clicking on the checkout button until a tag is "dropped in"
         var isAddToCartBtnVisible = false;
-        var count = 0;
+        //var count = 0;
+
         do {
-            console.log("Count: " + count);
-            await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click({ timeout: 0 })
-            .then(async () => {
-               await new Promise(resolve => setTimeout(resolve, 100));
-               count += 1;
+            try {
+                // Click the checkout button
+                await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click();
+                await new Promise(resolve => setTimeout(resolve, 187)); // Wait for 187 milliseconds
+
+                /*console.log("Count: " + count);
+                count += 1;
+
+                // After 1000 attempts, fill in additional fields if the button isn't visible yet
                 if (count === 1000 && !isAddToCartBtnVisible) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
-                    await page.locator('[aria-label="Row #1 - hunt location code"]').fill("012")
-                    await page.locator('[aria-label="Row #1 - date period code"]').fill("O4")
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-                console.log("Clicking on the enabled checkout button...");
+                    await page.locator('[aria-label="Row #1 - hunt location code"]').fill("012");
+                    await page.locator('[aria-label="Row #1 - date period code"]').fill("O4");
+                }*/
+
+                console.log("Checking if the Add to Cart button is visible...");
+
+                // Check if the Add to Cart button is visible
                 isAddToCartBtnVisible = await page.evaluate(() => {
                     const button = document.querySelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]');
-                    if (button != null) { // if the button exists, that means the Add to Cart button is visible
-                        console.log("Add to Cart button is now visible. Proceeding...");
-                        return true;
-                    } else { // if the button does not exist, that means the Add to Cart button is not visible
-                        console.log("Add to Cart button is still not visible.");
-                        return false;
-                    }
-                })
-            });
+                    return button != null;
+                });
+
+                if (isAddToCartBtnVisible) {
+                    console.log("Add to Cart button is now visible. Exiting loop...");
+                    break; // Exit the loop immediately
+                } else {
+                    console.log("Add to Cart button is still not visible.");
+                }
+            } catch (err) {
+                console.error("An error occurred in the loop:", err);
+                // Decide whether to continue or break based on the error
+                break; // Optionally break out of the loop on error
+            }
         } while (!isAddToCartBtnVisible);
 
-        // after the Confirm Choices page is rendered, the bot immediately clicks on the Add to Cart button
-        console.log("About to click on the Add to Cart button...");
-        await page.waitForSelector('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]', { timeout: 0 });
-        await page.locator('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]').click();
-        console.log("The Add to Cart button has successfully been clicked. End of the script."); 
+        // Code after the loop
+        if (isAddToCartBtnVisible) {
+            console.log("About to click on the Add to Cart button...");
+            await page.locator('div[data-auto-id="action-bar-right"] a.btn-primary.action-default[accesskey="A"]').click();
+            console.log("The Add to Cart button has been clicked. End of the script.");
+        } else {
+            console.log("Failed to find the Add to Cart button. Ending script.");
+        }
+
     }
     catch (error) {
         console.log(error);
