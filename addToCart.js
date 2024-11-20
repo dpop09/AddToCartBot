@@ -64,7 +64,7 @@ async function main(port, tagId) {
             try {
                 // Click the checkout button
                 await page.locator('#submit.btn-primary.action-default.btn.btn-default.first-underline[accesskey="C"]').click();
-                await new Promise(resolve => setTimeout(resolve, 187)); // Wait for 187 milliseconds
+                await new Promise(resolve => setTimeout(resolve, 182)); // Wait for 182 milliseconds
 
                 /*console.log("Count: " + count);
                 count += 1;
